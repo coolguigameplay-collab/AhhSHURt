@@ -3,72 +3,155 @@ package backend;
 import openfl.utils.Assets;
 import lime.utils.Assets as LimeAssets;
 
+#if sys
+import sys.FileSystem;
+import sys.io.File;
+#end
+
 #if cpp
 @:cppFileCode('#include <thread>')
 #end
+
 class CoolUtil
 {
 	public static function checkForUpdates(url:String = null):String {
 		if (url == null || url.length == 0)
 			url = "https://raw.githubusercontent.com/MobilePorting/FNF-PsychEngine-Mobile/main/gitVersion.txt";
+
 		var version:String = states.MainMenuState.psychEngineVersion.trim();
+
 		if(ClientPrefs.data.checkForUpdates) {
 			trace('checking for updates...');
+
 			var http = new haxe.Http(url);
+
 			http.onData = function (data:String)
 			{
 				var newVersion:String = data.split('\n')[0].trim();
+
 				trace('version online: $newVersion, your version: $version');
+
 				if(newVersion != version) {
 					trace('versions arent matching! please update');
+
 					version = newVersion;
+
 					http.onData = null;
 					http.onError = null;
 					http = null;
 				}
 			}
+
 			http.onError = function (error) {
 				trace('error: $error');
 			}
+
 			http.request();
 		}
+
 		return version;
 	}
-	inline public static function quantize(f:Float, snap:Float){
+
+	inline public static function quantize(f:Float, snap:Float)
+	{
 		// changed so this actually works lol
 		var m:Float = Math.fround(f * snap);
-		//trace(snap);
+
 		return (m / snap);
 	}
 
 	inline public static function capitalize(text:String)
 		return text.charAt(0).toUpperCase() + text.substr(1).toLowerCase();
 
+	/**
+	 * Reads a text file from either:
+	 *
+	 * 1. Embedded OpenFL assets
+	 * 2. Physical filesystem
+	 *
+	 * Embedded assets are checked FIRST.
+	 *
+	 * This is important for Android builds where mods are
+	 * embedded into the APK:
+	 *
+	 * example_mods/NamaMod/...
+	 *        ↓
+	 * mods/NamaMod/...
+	 *
+	 * No external mods folder is required.
+	 */
 	inline public static function coolTextFile(path:String):Array<String>
 	{
 		var daList:String = null;
-		#if (sys && MODS_ALLOWED)
-		if(FileSystem.exists(path)) daList = File.getContent(path);
-		#else
-		if(Assets.exists(path)) daList = Assets.getText(path);
+
+		if (path == null || path.length == 0)
+			return [];
+
+		/*
+		 * IMPORTANT:
+		 * Always check OpenFL Assets first.
+		 *
+		 * On Android/C++ the previous implementation checked
+		 * FileSystem first whenever sys && MODS_ALLOWED were true.
+		 *
+		 * That prevented embedded files inside the APK from being
+		 * read correctly because they are not necessarily physical
+		 * files on the filesystem.
+		 */
+		try
+		{
+			if (Assets.exists(path))
+				daList = Assets.getText(path);
+		}
+		catch(e:Dynamic)
+		{
+			trace('CoolUtil: failed to read embedded asset "$path": $e');
+		}
+
+		/*
+		 * Filesystem fallback.
+		 *
+		 * This keeps normal desktop/external-file behaviour working.
+		 */
+		#if sys
+		if (daList == null)
+		{
+			try
+			{
+				if (FileSystem.exists(path) && !FileSystem.isDirectory(path))
+					daList = File.getContent(path);
+			}
+			catch(e:Dynamic)
+			{
+				trace('CoolUtil: failed to read filesystem file "$path": $e');
+			}
+		}
 		#end
+
 		return daList != null ? listFromString(daList) : [];
 	}
 
 	inline public static function colorFromString(color:String):FlxColor
 	{
 		var hideChars = ~/[\t\n\r]/;
+
 		var color:String = hideChars.split(color).join('').trim();
-		if(color.startsWith('0x')) color = color.substring(color.length - 6);
+
+		if(color.startsWith('0x'))
+			color = color.substring(color.length - 6);
 
 		var colorNum:Null<FlxColor> = FlxColor.fromString(color);
-		if(colorNum == null) colorNum = FlxColor.fromString('#$color');
+
+		if(colorNum == null)
+			colorNum = FlxColor.fromString('#$color');
+
 		return colorNum != null ? colorNum : FlxColor.WHITE;
 	}
 
 	inline public static function listFromString(string:String):Array<String>
 	{
 		var daList:Array<String> = [];
+
 		daList = string.trim().split('\n');
 
 		for (i in 0...daList.length)
@@ -82,19 +165,23 @@ class CoolUtil
 		if(decimals < 1)
 			return Math.floor(value);
 
-		return Math.floor(value * Math.pow(10, decimals)) / Math.pow(10, decimals);
+		return Math.floor(value * Math.pow(10, decimals))
+			/ Math.pow(10, decimals);
 	}
 
 	#if linux
-	public static function sortAlphabetically(list:Array<String>):Array<String> {
-		if (list == null) return [];
+	public static function sortAlphabetically(list:Array<String>):Array<String>
+	{
+		if (list == null)
+			return [];
 
 		list.sort((a, b) -> {
 			var upperA = a.toUpperCase();
 			var upperB = b.toUpperCase();
-			
+
 			return upperA < upperB ? -1 : upperA > upperB ? 1 : 0;
 		});
+
 		return list;
 	}
 	#end
@@ -102,23 +189,38 @@ class CoolUtil
 	inline public static function dominantColor(sprite:flixel.FlxSprite):Int
 	{
 		var countByColor:Map<Int, Int> = [];
+
 		for(col in 0...sprite.frameWidth)
 		{
 			for(row in 0...sprite.frameHeight)
 			{
-				var colorOfThisPixel:FlxColor = sprite.pixels.getPixel32(col, row);
+				var colorOfThisPixel:FlxColor =
+					sprite.pixels.getPixel32(col, row);
+
 				if(colorOfThisPixel.alphaFloat > 0.05)
 				{
-					colorOfThisPixel = FlxColor.fromRGB(colorOfThisPixel.red, colorOfThisPixel.green, colorOfThisPixel.blue, 255);
-					var count:Int = countByColor.exists(colorOfThisPixel) ? countByColor[colorOfThisPixel] : 0;
+					colorOfThisPixel = FlxColor.fromRGB(
+						colorOfThisPixel.red,
+						colorOfThisPixel.green,
+						colorOfThisPixel.blue,
+						255
+					);
+
+					var count:Int =
+						countByColor.exists(colorOfThisPixel)
+						? countByColor[colorOfThisPixel]
+						: 0;
+
 					countByColor[colorOfThisPixel] = count + 1;
 				}
 			}
 		}
 
 		var maxCount = 0;
-		var maxKey:Int = 0; //after the loop this will store the max color
+		var maxKey:Int = 0;
+
 		countByColor[FlxColor.BLACK] = 0;
+
 		for(key => count in countByColor)
 		{
 			if(count >= maxCount)
@@ -127,19 +229,24 @@ class CoolUtil
 				maxKey = key;
 			}
 		}
+
 		countByColor = [];
+
 		return maxKey;
 	}
 
 	inline public static function numberArray(max:Int, ?min = 0):Array<Int>
 	{
 		var dumbArray:Array<Int> = [];
-		for (i in min...max) dumbArray.push(i);
+
+		for (i in min...max)
+			dumbArray.push(i);
 
 		return dumbArray;
 	}
 
-	inline public static function browserLoad(site:String) {
+	inline public static function browserLoad(site:String)
+	{
 		#if linux
 		Sys.command('/usr/bin/xdg-open', [site]);
 		#else
@@ -147,73 +254,100 @@ class CoolUtil
 		#end
 	}
 
-	inline public static function openFolder(folder:String, absolute:Bool = false) {
+	inline public static function openFolder(folder:String, absolute:Bool = false)
+	{
 		#if sys
-			if(!absolute) folder =  Sys.getCwd() + '$folder';
+			if(!absolute)
+				folder = Sys.getCwd() + '$folder';
 
 			folder = folder.replace('/', '\\');
-			if(folder.endsWith('/')) folder.substr(0, folder.length - 1);
+
+			if(folder.endsWith('/'))
+				folder.substr(0, folder.length - 1);
 
 			#if linux
 			var command:String = '/usr/bin/xdg-open';
 			#else
 			var command:String = 'explorer.exe';
 			#end
+
 			Sys.command(command, [folder]);
+
 			trace('$command $folder');
 		#else
-			FlxG.error("Platform is not supported for CoolUtil.openFolder");
+			FlxG.error(
+				"Platform is not supported for CoolUtil.openFolder"
+			);
 		#end
 	}
 
 	/**
-		Helper Function to Fix Save Files for Flixel 5
-
-		-- EDIT: [November 29, 2023] --
-
-		this function is used to get the save path, period.
-		since newer flixel versions are being enforced anyways.
-		@crowplexus
-	**/
+	 * Helper Function to Fix Save Files for Flixel 5
+	 *
+	 * -- EDIT: [November 29, 2023] --
+	 *
+	 * this function is used to get the save path, period.
+	 * since newer flixel versions are being enforced anyways.
+	 */
 	@:access(flixel.util.FlxSave.validate)
-	inline public static function getSavePath():String {
-		final company:String = FlxG.stage.application.meta.get('company');
-		// #if (flixel < "5.0.0") return company; #else
-		return '${company}/${flixel.util.FlxSave.validate(FlxG.stage.application.meta.get('file'))}';
-		// #end
+	inline public static function getSavePath():String
+	{
+		final company:String =
+			FlxG.stage.application.meta.get('company');
+
+		return '${company}/${flixel.util.FlxSave.validate(
+			FlxG.stage.application.meta.get('file')
+		)}';
 	}
 
-	public static function setTextBorderFromString(text:FlxText, border:String)
+	public static function setTextBorderFromString(
+		text:FlxText,
+		border:String
+	)
 	{
 		switch(border.toLowerCase().trim())
 		{
 			case 'shadow':
 				text.borderStyle = SHADOW;
+
 			case 'outline':
 				text.borderStyle = OUTLINE;
+
 			case 'outline_fast', 'outlinefast':
 				text.borderStyle = OUTLINE_FAST;
+
 			default:
 				text.borderStyle = NONE;
 		}
 	}
 
-	public static function showPopUp(message:String, title:String):Void
+	public static function showPopUp(
+		message:String,
+		title:String
+	):Void
 	{
 		/*#if android
-		AndroidTools.showAlertDialog(title, message, {name: "OK", func: null}, null);
+		AndroidTools.showAlertDialog(
+			title,
+			message,
+			{name: "OK", func: null},
+			null
+		);
 		#else*/
+
 		FlxG.stage.window.alert(message, title);
+
 		//#end
 	}
 
 	#if cpp
-    @:functionCode('
-        return std::thread::hardware_concurrency();
-    ')
+	@:functionCode('
+		return std::thread::hardware_concurrency();
+	')
 	#end
-    public static function getCPUThreadsCount():Int
-    {
-        return 1;
-    }
+
+	public static function getCPUThreadsCount():Int
+	{
+		return 1;
+	}
 }
