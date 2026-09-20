@@ -1,7 +1,8 @@
-name: BFEXEOPT Android
+name: Main
 
-on:
-  workflow_dispatch:
+on: workflow_dispatch
+
+# permissions: write-all
 
 jobs:
   Build:
@@ -10,16 +11,16 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: BFEXEOPT Android ARM64
+          - name: Android x64
             os: macos-15
             buildArgs: "android -ONLY_ARM64"
-            artifactName: BFEXEOPT Android ARM64
+            artifactName: Android x64
             artifactPath: "export/release/android/bin/app/build/outputs/apk/release/*.apk"
 
-          - name: BFEXEOPT Android ARMv7
+          - name: Android x32
             os: macos-15
             buildArgs: "android -ONLY_ARMV7"
-            artifactName: BFEXEOPT Android ARMv7
+            artifactName: Android x32
             artifactPath: "export/release/android/bin/app/build/outputs/apk/release/*.apk"
 
     uses: ./.github/workflows/build.yml
