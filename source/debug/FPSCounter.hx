@@ -68,26 +68,30 @@ class FPSCounter extends TextField
 		updateTime = prevTime + 500;
 	}
 
-
 	public dynamic function updateText():Void // so people can override it in hscript
 	{
-		text = 
-		'FPS: $currentFPS' + 
-		'\nMemory: ${flixel.util.FlxStringUtil.formatBytes(memoryMegas)}' +
-		os;
+		text =
+			'FPS: $currentFPS' +
+			'\nMemory: ${flixel.util.FlxStringUtil.formatBytes(memoryMegas)}' +
+			'\nMod/Engine ported by BFEXEOPT' +
+			'\nMod/Engine di-port oleh BFEXEOPT' +
+			os;
 
 		textColor = 0xFFFFFFFF;
+
 		if (currentFPS < FlxG.stage.window.frameRate * 0.5)
 			textColor = 0xFFFF0000;
 	}
 
 	var deltaTimeout:Float = 0.0;
+
 	private override function __enterFrame(deltaTime:Float):Void
 	{
 		if (ClientPrefs.data.fpsRework)
 		{
 			// Flixel keeps reseting this to 60 on focus gained
-			if (FlxG.stage.window.frameRate != ClientPrefs.data.framerate && FlxG.stage.window.frameRate != FlxG.game.focusLostFramerate)
+			if (FlxG.stage.window.frameRate != ClientPrefs.data.framerate
+				&& FlxG.stage.window.frameRate != FlxG.game.focusLostFramerate)
 				FlxG.stage.window.frameRate = ClientPrefs.data.framerate;
 
 			var currentTime = openfl.Lib.getTimer();
@@ -103,7 +107,8 @@ class FPSCounter extends TextField
 			}
 
 			// Set Update and Draw framerate to the current FPS every 1.5 second to prevent "slowness" issue
-			if ((FlxG.updateFramerate >= currentFPS + 5 || FlxG.updateFramerate <= currentFPS - 5)
+			if ((FlxG.updateFramerate >= currentFPS + 5
+				|| FlxG.updateFramerate <= currentFPS - 5)
 				&& haxe.Timer.stamp() - lastFramerateUpdateTime >= 1.5
 				&& currentFPS >= 30)
 			{
@@ -115,8 +120,10 @@ class FPSCounter extends TextField
 		{
 			final now:Float = haxe.Timer.stamp() * 1000;
 			times.push(now);
+
 			while (times[0] < now - 1000)
 				times.shift();
+
 			// prevents the overlay from updating every frame, why would you need to anyways @crowplexus
 			if (deltaTimeout < 50)
 			{
@@ -124,7 +131,10 @@ class FPSCounter extends TextField
 				return;
 			}
 
-			currentFPS = times.length < FlxG.updateFramerate ? times.length : FlxG.updateFramerate;
+			currentFPS = times.length < FlxG.updateFramerate
+				? times.length
+				: FlxG.updateFramerate;
+
 			deltaTimeout = 0.0;
 		}
 
@@ -134,8 +144,15 @@ class FPSCounter extends TextField
 	inline function get_memoryMegas():Float
 		return cpp.vm.Gc.memInfo64(cpp.vm.Gc.MEM_INFO_USAGE);
 
-	public inline function positionFPS(X:Float, Y:Float, ?scale:Float = 1){
-		scaleX = scaleY = #if android (scale > 1 ? scale : 1) #else (scale < 1 ? scale : 1) #end;
+	public inline function positionFPS(X:Float, Y:Float, ?scale:Float = 1)
+	{
+		scaleX = scaleY =
+			#if android
+				(scale > 1 ? scale : 1)
+			#else
+				(scale < 1 ? scale : 1)
+			#end;
+
 		x = FlxG.game.x + X;
 		y = FlxG.game.y + Y;
 	}
@@ -166,7 +183,7 @@ class FPSCounter extends TextField
 	#elseif (ios || mac)
 	@:functionCode('
 		const NXArchInfo *archInfo = NXGetLocalArchInfo();
-    	return ::String(archInfo == NULL ? "Unknown" : archInfo->name);
+		return ::String(archInfo == NULL ? "Unknown" : archInfo->name);
 	')
 	#else
 	@:functionCode('
@@ -175,6 +192,7 @@ class FPSCounter extends TextField
 		return ::String(osInfo.machine);
 	')
 	#end
+
 	@:noCompletion
 	private function getArch():String
 	{
