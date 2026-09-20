@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?><project>
-	<!-- _________________________ Application Settings _________________________ --><app title="Friday Night Funkin': Psych Engine"
-	file="PsychEngine"
-	packageName="com.yourname.psychengine"
-	package="com.yourname.psychengine"
-	main="Main"
-	version="0.2.8"
-	company="YourName" />
+	<!-- _________________________ Application Settings _________________________ --><app
+    title="BFEXEOPT"
+    file="BFEXEOPT"
+    packageName="com.bfexeopt.engine"
+    package="com.bfexeopt.engine"
+    main="Main"
+    version="0.2.8"
+    company="BFEXEOPT" />
 
 <set name="APP_ID" value="0x0100f6c013bbc000" />
 
