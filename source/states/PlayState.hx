@@ -17,6 +17,7 @@ import flixel.input.keyboard.FlxKey;
 import flixel.animation.FlxAnimationController;
 import lime.utils.Assets;
 import openfl.utils.Assets as OpenFlAssets;
+import openfl.utils.AssetType;
 import openfl.events.KeyboardEvent;
 import haxe.Json;
 
@@ -789,7 +790,7 @@ class PlayState extends MusicBeatState
 		var luaFile:String = 'characters/$name.lua';
 		#if MODS_ALLOWED
 		var replacePath:String = Paths.modFolders(luaFile);
-		if(FileSystem.exists(replacePath))
+		if(Paths.assetExists(replacePath))
 		{
 			luaFile = replacePath;
 			doPush = true;
@@ -797,12 +798,12 @@ class PlayState extends MusicBeatState
 		else
 		{
 			luaFile = Paths.getSharedPath(luaFile);
-			if(FileSystem.exists(luaFile))
+			if(Paths.assetExists(luaFile))
 				doPush = true;
 		}
 		#else
 		luaFile = Paths.getSharedPath(luaFile);
-		if(Assets.exists(luaFile)) doPush = true;
+		if(Paths.assetExists(luaFile)) doPush = true;
 		#end
 
 		if(doPush)
@@ -825,7 +826,7 @@ class PlayState extends MusicBeatState
 		var scriptFile:String = 'characters/' + name + '.hx';
 		#if MODS_ALLOWED
 		var replacePath:String = Paths.modFolders(scriptFile);
-		if(FileSystem.exists(replacePath))
+		if(Paths.assetExists(replacePath))
 		{
 			scriptFile = replacePath;
 			doPush = true;
@@ -834,7 +835,7 @@ class PlayState extends MusicBeatState
 		#end
 		{
 			scriptFile = Paths.getSharedPath(scriptFile);
-			if(FileSystem.exists(scriptFile))
+			if(Paths.assetExists(scriptFile))
 				doPush = true;
 		}
 
@@ -871,12 +872,8 @@ class PlayState extends MusicBeatState
 		var foundFile:Bool = false;
 		var fileName:String = Paths.video(name);
 
-		#if sys
-		if (FileSystem.exists(fileName))
-		#else
-		if (OpenFlAssets.exists(fileName))
-		#end
-		foundFile = true;
+		if (Paths.assetExists(fileName, AssetType.BINARY))
+			foundFile = true;
 
 		if (foundFile)
 		{
@@ -3375,13 +3372,13 @@ class PlayState extends MusicBeatState
 	{
 		#if MODS_ALLOWED
 		var luaToLoad:String = Paths.modFolders(luaFile);
-		if(!FileSystem.exists(luaToLoad))
+		if(!Paths.assetExists(luaToLoad))
 			luaToLoad = Paths.getSharedPath(luaFile);
 
-		if(FileSystem.exists(luaToLoad))
+		if(Paths.assetExists(luaToLoad))
 		#elseif sys
 		var luaToLoad:String = Paths.getSharedPath(luaFile);
-		if(OpenFlAssets.exists(luaToLoad))
+		if(Paths.assetExists(luaToLoad))
 		#end
 		{
 			for (script in luaArray)
@@ -3399,13 +3396,13 @@ class PlayState extends MusicBeatState
 	{
 		#if MODS_ALLOWED
 		var scriptToLoad:String = Paths.modFolders(scriptFile);
-		if(!FileSystem.exists(scriptToLoad))
+		if(!Paths.assetExists(scriptToLoad))
 			scriptToLoad = Paths.getSharedPath(scriptFile);
 		#else
 		var scriptToLoad:String = Paths.getSharedPath(scriptFile);
 		#end
 
-		if(FileSystem.exists(scriptToLoad))
+		if(Paths.assetExists(scriptToLoad))
 		{
 			if (Iris.instances.exists(scriptToLoad)) return false;
 
@@ -3694,22 +3691,23 @@ class PlayState extends MusicBeatState
 
 		for (folder in Mods.directoriesWithFile(Paths.getSharedPath(), 'shaders/'))
 		{
-			var frag:String = folder + name + '.frag';
-			var vert:String = folder + name + '.vert';
+			var fragPath:String = folder + name + '.frag';
+			var vertPath:String = folder + name + '.vert';
+			var frag:String = null;
+			var vert:String = null;
 			var found:Bool = false;
-			if(FileSystem.exists(frag))
-			{
-				frag = File.getContent(frag);
-				found = true;
-			}
-			else frag = null;
 
-			if(FileSystem.exists(vert))
+			if(Paths.assetExists(fragPath))
 			{
-				vert = File.getContent(vert);
+				frag = Paths.getTextFromFile(fragPath);
 				found = true;
 			}
-			else vert = null;
+
+			if(Paths.assetExists(vertPath))
+			{
+				vert = Paths.getTextFromFile(vertPath);
+				found = true;
+			}
 
 			if(found)
 			{
