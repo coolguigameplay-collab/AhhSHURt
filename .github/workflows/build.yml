@@ -21,13 +21,14 @@ on:
 
 env:
   HAXE_VERSION: 4.3.4
-  PROJECT_NAME: PsychEngine
+  PROJECT_NAME: BFEXEOPT
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   build:
     name: Build
     runs-on: ${{ inputs.os }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@main
@@ -46,7 +47,8 @@ jobs:
 
       - name: Install libVLC
         if: inputs.name == 'Linux'
-        run: sudo apt-get install -y libvlc-dev libvlccore-dev
+        run: |
+          sudo apt-get install -y libvlc-dev libvlccore-dev
 
       - name: Install Libraries
         run: |
@@ -58,9 +60,16 @@ jobs:
         run: |
           HAXELIB_REPO=$(haxelib config)
           FLIXEL_INCLUDE="$HAXELIB_REPO/flixel/5,6,1/include.xml"
+
           echo "Patching $FLIXEL_INCLUDE"
-          test -f "$FLIXEL_INCLUDE" || { echo "include.xml not found in $FLIXEL_INCLUDE"; exit 1; }
+
+          test -f "$FLIXEL_INCLUDE" || {
+            echo "include.xml not found in $FLIXEL_INCLUDE"
+            exit 1
+          }
+
           perl -pi -e 's/ if="\$\{lime &ge; 8\.2\.0\}"//' "$FLIXEL_INCLUDE"
+
           grep -n "appCategory" "$FLIXEL_INCLUDE"
 
       - name: Patch Flixel Android x32 manifest bug
@@ -68,29 +77,49 @@ jobs:
         run: |
           HAXELIB_REPO=$(haxelib config)
           FLIXEL_INCLUDE="$HAXELIB_REPO/flixel/5,6,1/include.xml"
+
           echo "Patching $FLIXEL_INCLUDE"
-          test -f "$FLIXEL_INCLUDE" || { echo "include.xml not found in $FLIXEL_INCLUDE"; exit 1; }
+
+          test -f "$FLIXEL_INCLUDE" || {
+            echo "include.xml not found in $FLIXEL_INCLUDE"
+            exit 1
+          }
+
           perl -pi -e 's/ if="\$\{lime &ge; 8\.2\.0\}"//' "$FLIXEL_INCLUDE"
+
           grep -n "appCategory" "$FLIXEL_INCLUDE"
 
-      - name: Configure Android x64
-        if: inputs.name == 'Android x64'
+      - name: Setup Android
+        if: inputs.name == 'Android x64' || inputs.name == 'Android x32'
         run: |
-          haxelib run lime config ANDROID_SDK $ANDROID_HOME
-          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
-          haxelib run lime config JAVA_HOME $JAVA_HOME_17_arm64
-          haxelib run lime config ANDROID_SETUP true
+          echo "Android SDK: $ANDROID_HOME"
+          echo "Android NDK: $ANDROID_NDK_LATEST_HOME"
+          echo "Java 17: $JAVA_HOME_17_arm64"
 
-      - name: Configure Android x32
-        if: inputs.name == 'Android x32'
-        run: |
-          haxelib run lime config ANDROID_SDK $ANDROID_HOME
-          haxelib run lime config ANDROID_NDK_ROOT $ANDROID_NDK_LATEST_HOME
-          haxelib run lime config JAVA_HOME $JAVA_HOME_17_arm64
-          haxelib run lime config ANDROID_SETUP true
+          test -d "$ANDROID_HOME" || {
+            echo "ANDROID_HOME does not exist"
+            exit 1
+          }
+
+          test -d "$ANDROID_NDK_LATEST_HOME" || {
+            echo "ANDROID_NDK_LATEST_HOME does not exist"
+            exit 1
+          }
+
+          test -d "$JAVA_HOME_17_arm64" || {
+            echo "JAVA_HOME_17_arm64 does not exist"
+            exit 1
+          }
+
+          haxelib run lime setup android
+
+          haxelib run lime config ANDROID_SDK "$ANDROID_HOME"
+          haxelib run lime config ANDROID_NDK_ROOT "$ANDROID_NDK_LATEST_HOME"
+          haxelib run lime config JAVA_HOME "$JAVA_HOME_17_arm64"
 
       - name: Compile
-        run: haxelib run lime build ${{ inputs.buildArgs }}
+        run: |
+          haxelib run lime build ${{ inputs.buildArgs }}
 
       - name: Make IPA
         if: inputs.name == 'iOS'
